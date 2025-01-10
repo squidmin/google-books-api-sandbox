@@ -2,6 +2,7 @@ import os
 from urllib.parse import quote
 from uuid import uuid4
 
+from flask import url_for
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .entry import Entry
@@ -10,13 +11,13 @@ from .link import Link
 
 class Catalog(object):
     def __init__(
-        self,
-        title,
-        id=None,
-        author_name=None,
-        author_uri=None,
-        root_url=None,
-        url=None,
+            self,
+            title,
+            id=None,
+            author_name=None,
+            author_uri=None,
+            root_url=None,
+            url=None,
     ):
         self.title = title
         self.id = id or uuid4()

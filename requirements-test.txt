@@ -1,0 +1,6 @@
+httpx
+pytest
+pytest-mock
+pytest-asyncio
+responses
+pytest-random-order

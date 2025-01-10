@@ -5,16 +5,63 @@ from flask import Flask, jsonify, send_from_directory, request
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash
 from gevent.pywsgi import WSGIServer
+from util import fromdir
 from urllib.parse import quote_plus
-
-app = Flask(__name__)
 
 app = Flask(__name__, static_url_path="", static_folder="static")
 auth = HTTPBasicAuth()
 
-CONTENT_BASE_DIR = '/library'
+CONTENT_BASE_DIR = os.getenv("CONTENT_BASE_DIR", "/library")
 
+GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY", None)
 books_cache = {}
+
+
+@app.route("/catalog")
+@app.route("/catalog/<path:path>")
+@auth.login_required
+def catalog(path=""):
+    view_mode = request.args.get("view", "list")  # default to 'list' view
+    c = fromdir(request.root_url, request.url, config.CONTENT_BASE_DIR, path)
+
+    catalog_entries = []
+    for entry in c.entries:
+        title = entry.title
+        if title in books_cache:
+            isbn = books_cache[title]
+        else:
+            isbn = get_isbn_from_google_books(title)
+            books_cache[title] = isbn
+
+        entry.isbn = isbn if isbn else []
+        catalog_entries.append(entry)
+
+    return c.render(view_mode=view_mode, catalog_entries=catalog_entries)
+
+
+@app.route("/check_and_update_isbns", methods=["POST"])
+def check_and_update_isbns():
+    """Check all book titles for ISBNs and update the memory if necessary."""
+    try:
+        books_data = {}
+
+        for title in books_data:
+            if not books_data[title]:
+                print(f"Fetching ISBN for: {title}")
+                isbns = get_isbn_from_google_books(title)
+                if isbns:
+                    books_data[title] = isbns
+                else:
+                    books_data[title] = []  # No ISBN found
+
+        print(f"Books data to be saved: {books_data}")
+        print("ISBN data updated.")
+
+        return jsonify({"message": "ISBN data successfully updated"}), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Failed to update ISBN data"}), 500
 
 
 @app.route("/isbn_lookup", methods=["POST"])
@@ -45,7 +92,7 @@ def isbn_lookup():
 def get_isbn_from_google_books(title):
     """Fetch ISBN from Google Books API based on book title."""
     title = quote_plus(title)
-    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}&maxResults=1&key={os.getenv('GOOGLE_BOOKS_API_KEY')}"
+    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}&maxResults=1&key={GOOGLE_BOOKS_API_KEY}"
     print(f"Fetching ISBN for: {title} | URL: {url}")  # Debugging: Log the request URL
     response = requests.get(url)
 
