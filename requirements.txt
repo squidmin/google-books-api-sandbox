@@ -1,0 +1,10 @@
+Cython>=3.0.0
+Flask==2.0.2
+Flask-HTTPAuth==4.5.0
+greenlet>=1.1.2
+gevent>=22.0.0
+Jinja2==3.0.2
+requests==2.32.0
+werkzeug==2.0.3
+pytest
+pytest-mock
