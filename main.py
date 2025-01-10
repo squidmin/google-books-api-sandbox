@@ -11,9 +11,9 @@ from urllib.parse import quote_plus
 app = Flask(__name__, static_url_path="", static_folder="static")
 auth = HTTPBasicAuth()
 
-CONTENT_BASE_DIR = os.getenv("CONTENT_BASE_DIR", "/library")
+CONTENT_BASE_DIR = os.getenv("CONTENT_BASE_DIR", os.getenv("content-base-dir", "/library"))
 
-GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY", None)
+GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY", os.getenv("google-books-api-key", None))
 books_cache = {}
 
 
