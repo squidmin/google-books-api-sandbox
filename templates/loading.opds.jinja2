@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:dc="http://purl.org/dc/terms/"
+      xmlns:ov="http://open.vocab.org/terms/"
+      xmlns:oz="http://openzim.org/terms/"
+      xmlns:opds="http://opds-spec.org/2010/catalog">
+
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+{% if loading == True %}
+  <div id="progress-bar-container" style="display:none;">
+    <progress id="progress-bar" value="0" max="100"></progress>
+    <p>Loading...</p>
+  </div>
+{% endif %}
+
+</feed>

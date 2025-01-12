@@ -2,6 +2,7 @@ class Entry(object):
     valid_keys = (
         "id",
         "url",
+        "filename",
         "title",
         "content",
         "downloadsPerMonth",
@@ -39,6 +40,7 @@ class Entry(object):
                 raise KeyError("required key %s not supplied for Entry!" % (req_key))
 
         self.id = kwargs["id"]
+        self.filename = kwargs.get("filename", None)
         self.title = kwargs["title"]
         self.links = kwargs["links"]
         self.isbn = kwargs.get("isbn", [])

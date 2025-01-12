@@ -6,6 +6,7 @@ from gevent.pywsgi import WSGIServer
 from werkzeug.security import check_password_hash
 
 import config
+from urllib.parse import quote_plus
 from util import fromdir
 from util.db_util import init_db, insert_book_to_db, get_isbn_from_db
 from util.google_books_util import get_isbn_by_title
@@ -39,12 +40,12 @@ def catalog(path=""):
             if isbn:
                 print(f"ISBN FROM GOOGLE BOOKS: {isbn}")
                 books_cache[title] = isbn  # Cache fetched ISBN
-                insert_book_to_db(title, isbn)  # Insert into database if new
+                insert_book_to_db(title, quote_plus(title), isbn)  # Insert into database if new
 
         entry.isbn = isbn if isbn else []  # Ensure the ISBN field is updated with the correct value
         catalog_entries.append(entry)
 
-    return c.render(view_mode=view_mode, catalog_entries=catalog_entries)
+    return c.render(view_mode=view_mode, catalog_entries=catalog_entries, loading=True)
 
 
 @app.route("/view_books")
@@ -53,14 +54,14 @@ def view_books():
     """Display books from the database in an HTML table."""
     conn = sqlite3.connect('ebooks.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT title, isbn FROM books")
+    cursor.execute("SELECT filename, title, isbn FROM books")
     books = cursor.fetchall()
     conn.close()
 
     # Render the results as an HTML table
-    html = "<h1>Books in the Database</h1><table border='1'><tr><th>Title</th><th>ISBN</th></tr>"
+    html = "<h1>books</h1><table border='1'><tr><th>Filename</th><th>Title</th><th>ISBN</th></tr>"
     for book in books:
-        html += f"<tr><td>{book[0]}</td><td>{book[1]}</td></tr>"
+        html += f"<tr><td>{book[0]}</td><td>{book[1]}</td><td>{book[2]}</td></tr>"
     html += "</table>"
 
     return html
@@ -70,10 +71,10 @@ def view_books():
 def check_and_update_books():
     """Check all book titles for ISBNs and update the memory if necessary."""
     try:
-        books_data = {}
+        books_data = request.get_json()["books_data"]
 
         # Example book titles to update or check
-        books_to_check = ["The Great Gatsby", "1984", "To Kill a Mockingbird"]
+        books_to_check = [str(book) for book in books_data]
 
         # Check for each title if it exists in the database
         for title in books_to_check:

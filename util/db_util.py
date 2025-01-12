@@ -2,17 +2,18 @@ import sqlite3
 
 
 def init_db():
-    # Connect to the SQLite database (or create it if it doesn't exist)
+    """Initialize the database by creating the table if it doesn't exist."""
     conn = sqlite3.connect('ebooks.db')
     cursor = conn.cursor()
 
-    # Clear the books table each time the application starts
-    cursor.execute("DELETE FROM books")  # This clears the table
+    # Drop the table if it exists, so we can recreate it with the correct schema
+    cursor.execute("DROP TABLE IF EXISTS books")
 
-    # Re-create the table (if needed, to ensure schema is correct)
+    # Create the books table with the filename column
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS books (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT,
         title TEXT NOT NULL,
         isbn TEXT NOT NULL,
         UNIQUE(title, isbn)
@@ -23,7 +24,7 @@ def init_db():
     conn.close()
 
 
-def insert_book_to_db(title, isbn):
+def insert_book_to_db(title, filename, isbn):
     """Insert a book and its ISBN into the SQLite database if not already present."""
     if not isbn:
         print(f"Invalid ISBN for book {title}. Skipping insertion.")  # Debugging
@@ -35,11 +36,11 @@ def insert_book_to_db(title, isbn):
     conn = sqlite3.connect('ebooks.db')
     cursor = conn.cursor()
     try:
-        print(f"Inserting book into the database: {title}; {isbn}")
+        print(f"Inserting book into the database: {filename}; {title}; {isbn}")
         cursor.execute('''
-            INSERT OR IGNORE INTO books (title, isbn)
-            VALUES (?, ?)
-        ''', (title, isbn))
+            INSERT OR IGNORE INTO books (filename, title, isbn)
+            VALUES (?, ?, ?)
+        ''', (filename, title, isbn))  # Make sure filename is being inserted
         conn.commit()
     except sqlite3.InterfaceError as e:
         print(f"Error inserting {title} with ISBN {isbn}: {e}")  # Debugging
@@ -51,7 +52,7 @@ def get_books_from_db():
     """Retrieve all books from the database."""
     conn = sqlite3.connect('ebooks.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT title, isbn FROM books")
+    cursor.execute("SELECT filename, title, isbn FROM books")
     books = cursor.fetchall()
     conn.close()
     return books
