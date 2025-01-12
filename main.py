@@ -1,19 +1,18 @@
-import config
-import os
-import requests
+import sqlite3
+
 from flask import Flask, jsonify, send_from_directory, request
 from flask_httpauth import HTTPBasicAuth
-from werkzeug.security import check_password_hash
 from gevent.pywsgi import WSGIServer
+from werkzeug.security import check_password_hash
+
+import config
 from util import fromdir
-from urllib.parse import quote_plus
+from util.db_util import init_db, insert_book_to_db, get_isbn_from_db
+from util.google_books_util import get_isbn_by_title
 
 app = Flask(__name__, static_url_path="", static_folder="static")
 auth = HTTPBasicAuth()
 
-CONTENT_BASE_DIR = os.getenv("CONTENT_BASE_DIR", os.getenv("content-base-dir", "/library"))
-
-GOOGLE_BOOKS_API_KEY = os.getenv("GOOGLE_BOOKS_API_KEY", os.getenv("google-books-api-key", None))
 books_cache = {}
 
 
@@ -27,28 +26,60 @@ def catalog(path=""):
     catalog_entries = []
     for entry in c.entries:
         title = entry.title
+        isbn = None
         if title in books_cache:
             isbn = books_cache[title]
-        else:
-            isbn = get_isbn_from_google_books(title)
-            books_cache[title] = isbn
+        if not isbn:  # If the ISBN is not in the cache, check the database
+            isbn = get_isbn_from_db(title)
+            print(f"ISBN FROM DB: {isbn}")
 
-        entry.isbn = isbn if isbn else []
+            # If no ISBN is found in cache or database, fetch from Google Books API
+        if not isbn:
+            isbn = get_isbn_by_title(title)
+            if isbn:
+                print(f"ISBN FROM GOOGLE BOOKS: {isbn}")
+                books_cache[title] = isbn  # Cache fetched ISBN
+                insert_book_to_db(title, isbn)  # Insert into database if new
+
+        entry.isbn = isbn if isbn else []  # Ensure the ISBN field is updated with the correct value
         catalog_entries.append(entry)
 
     return c.render(view_mode=view_mode, catalog_entries=catalog_entries)
 
 
-@app.route("/check_and_update_isbns", methods=["POST"])
-def check_and_update_isbns():
+@app.route("/view_books")
+@auth.login_required
+def view_books():
+    """Display books from the database in an HTML table."""
+    conn = sqlite3.connect('ebooks.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT title, isbn FROM books")
+    books = cursor.fetchall()
+    conn.close()
+
+    # Render the results as an HTML table
+    html = "<h1>Books in the Database</h1><table border='1'><tr><th>Title</th><th>ISBN</th></tr>"
+    for book in books:
+        html += f"<tr><td>{book[0]}</td><td>{book[1]}</td></tr>"
+    html += "</table>"
+
+    return html
+
+
+@app.route("/check_and_update_books", methods=["POST"])
+def check_and_update_books():
     """Check all book titles for ISBNs and update the memory if necessary."""
     try:
         books_data = {}
 
-        for title in books_data:
-            if not books_data[title]:
-                print(f"Fetching ISBN for: {title}")
-                isbns = get_isbn_from_google_books(title)
+        # Example book titles to update or check
+        books_to_check = ["The Great Gatsby", "1984", "To Kill a Mockingbird"]
+
+        # Check for each title if it exists in the database
+        for title in books_to_check:
+            if title not in books_cache:
+                # Fetch the ISBN if it's not in the cache or database
+                isbns = get_isbn_by_title([title])
                 if isbns:
                     books_data[title] = isbns
                 else:
@@ -79,7 +110,7 @@ def isbn_lookup():
             if title in books_cache and books_cache[title]:
                 result[title] = books_cache[title]
             else:
-                isbns = get_isbn_from_google_books(title)
+                isbns = get_isbn_by_title([title])
                 result[title] = isbns
                 books_cache[title] = isbns
 
@@ -87,35 +118,6 @@ def isbn_lookup():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-def get_isbn_from_google_books(title):
-    """Fetch ISBN from Google Books API based on book title."""
-    title = quote_plus(title)
-    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}&maxResults=1&key={GOOGLE_BOOKS_API_KEY}"
-    print(f"Fetching ISBN for: {title} | URL: {url}")  # Debugging: Log the request URL
-    response = requests.get(url)
-
-    if response.status_code != 200:
-        print(f"Failed to fetch data for {title}. Status code: {response.status_code}")
-        return []
-
-    data = response.json()
-    print(f"API response for {title}: {data}")  # Debugging: Print raw response
-
-    # Extract the ISBN (13 digits)
-    isbn_list = []
-    if "items" in data:
-        for item in data["items"]:
-            volume_info = item.get("volumeInfo", {})
-            industry_identifiers = volume_info.get("industryIdentifiers", [])
-            for identifier in industry_identifiers:
-                if identifier["type"] == "ISBN_13":
-                    isbn_list.append(identifier["identifier"])
-
-    if not isbn_list:
-        print(f"No ISBN found for {title}")  # Debugging: Log if no ISBN is found
-    return isbn_list
 
 
 @auth.verify_password
@@ -141,5 +143,6 @@ def send_content(path):
 
 
 if __name__ == "__main__":
+    init_db()
     http_server = WSGIServer(("", 5000), app)
     http_server.serve_forever()

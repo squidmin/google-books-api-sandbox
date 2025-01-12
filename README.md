@@ -6,16 +6,16 @@
 
 ```bash
 python3 main.py \
-  --google-books-api-key=${GOOGLE_BOOKS_API_KEY} \
-  --library=/path/to/content
+  --GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY} \
+  --library=${pwd}/library
 ```
 
 For example:
 
 ```bash
 python3 main.py \
-  --google-books-api-key=AIzaSyD1J1J1J1J1J1J1J1J1J1J1J1J1J1J1 \
-  --library=/Users/admin/Documents/07_books
+  --GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY} \
+  --CONTENT_BASE_DIR=${pwd}/library
 ```
 
 ### Container

@@ -33,7 +33,7 @@ class Catalog(object):
     def render(self, view_mode=None, catalog_entries=None):
         env = Environment(
             loader=FileSystemLoader(
-                searchpath=os.path.join(os.path.dirname(__file__), "templates")
+                searchpath=os.path.join(os.path.dirname(__file__), "../templates")
             ),
             autoescape=select_autoescape(["html", "xml"]),
         )

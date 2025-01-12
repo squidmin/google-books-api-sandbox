@@ -2,7 +2,7 @@ import config
 import pytest
 from unittest.mock import patch, MagicMock
 from flask import Flask, jsonify
-from main import app, get_isbn_from_google_books, books_cache
+from main import app, get_isbn_by_title, books_cache
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def test_get_isbn_from_google_books(mock_get):
     mock_get.return_value = mock_response
 
     title = "The Great Gatsby"
-    isbn = get_isbn_from_google_books(title)
+    isbn = get_isbn_by_title(title)
     assert isbn == ["9780743273565"]
 
     # Modify expected URL to match encoded form (spaces encoded as '+')
