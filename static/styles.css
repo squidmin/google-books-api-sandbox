@@ -82,3 +82,39 @@ progress {
     width: 80%;
     height: 30px;
 }
+
+
+/* Thumbnail container */
+.thumbnail-container {
+  display: flex;
+  justify-content: center;  /* Center the thumbnail horizontally */
+  align-items: center;  /* Center the thumbnail vertically */
+  height: 100px;  /* Set the height for the thumbnail container */
+  overflow: hidden;
+}
+
+.thumbnail {
+  max-width: 100%;  /* Make sure the image fits within the container */
+  height: auto;  /* Maintain aspect ratio */
+}
+
+/* Styling for text */
+h3 {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+p {
+  font-size: 0.9em;
+  margin: 5px 0;
+}
+
+a {
+  font-size: 0.9em;
+  color: #007bff;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

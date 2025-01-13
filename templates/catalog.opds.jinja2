@@ -23,8 +23,6 @@
   <link rel="self" href="{{ catalog.url }}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
-
-
   <div class="view-toggle">
     <a href="?view=list">List View</a> | <a href="?view=grid">Grid View</a>
   </div>
@@ -34,12 +32,20 @@
       {% for entry in catalog_entries %}
         <div class="list-item">
           <h3>{{ entry.title }}</h3>
-
           {% if entry.is_folder %}
             <!-- Folder entry: no ISBN, no link, and show a folder icon -->
-            <p><i class="folder-icon">📁</i> This is a folder.</p>
+            <p><i class="folder-icon">📁</i> </p>
           {% else %}
             <!-- File entry: show ISBNs and link -->
+            {% if entry.thumbnail %}
+              <img src="{{ entry.thumbnail }}" alt="{{ entry.title }}">
+            {% endif %}
+            {% if entry.canonical_volume_link %}
+              <p>
+                <a href="{{ entry.canonical_volume_link }}" type="application/atom+xml;profile=opds-catalog;kind=acquisition">Read</a>
+              </p>
+            {% endif %}
+
             {% if entry.isbn %}
               <p>ISBN: {{ entry.isbn }}</p>
             {% else %}
@@ -62,6 +68,16 @@
           {% if entry.is_folder %}
             <p><i class="folder-icon">📁</i> This is a folder.</p>
           {% else %}
+            {% if entry.thumbnail %}
+              <div class="thumbnail-container">
+                <img src="{{ entry.small_thumbnail }}" alt="{{ entry.title }}" class="thumbnail">
+              </div>
+            {% endif %}
+            {% if entry.canonical_volume_link %}
+              <p>
+                <a href="{{ entry.canonical_volume_link }}" type="application/atom+xml;profile=opds-catalog;kind=acquisition">Read</a>
+              </p>
+            {% endif %}
             {% if entry.isbn %}
               <p>ISBN: {{ entry.isbn }}</p>
             {% else %}

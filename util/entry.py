@@ -21,6 +21,7 @@ class Entry(object):
         "authors",
         "formats",
         "links",
+        "thumbnail",
         "isbn",
         "is_folder",
     )

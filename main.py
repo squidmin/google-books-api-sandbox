@@ -1,6 +1,6 @@
 import sqlite3
 
-from flask import Flask, jsonify, send_from_directory, request
+from flask import Flask, jsonify, send_from_directory, request, render_template
 from flask_httpauth import HTTPBasicAuth
 from gevent.pywsgi import WSGIServer
 from werkzeug.security import check_password_hash
@@ -8,8 +8,8 @@ from werkzeug.security import check_password_hash
 import config
 from urllib.parse import quote_plus
 from util import fromdir
-from util.db_util import init_db, insert_book_to_db, get_isbn_from_db
-from util.google_books_util import get_isbn_by_title
+from util.db_util import init_db, insert_book_to_db, get_book_by_title
+from util.google_books_util import get_book_info_by_title
 
 app = Flask(__name__, static_url_path="", static_folder="static")
 auth = HTTPBasicAuth()
@@ -27,22 +27,30 @@ def catalog(path=""):
     catalog_entries = []
     for entry in c.entries:
         title = entry.title
-        isbn = None
+        book_info = None
         if title in books_cache:
-            isbn = books_cache[title]
-        if not isbn:  # If the ISBN is not in the cache, check the database
-            isbn = get_isbn_from_db(title)
-            print(f"ISBN FROM DB: {isbn}")
+            book_info = books_cache[title]
+        if not book_info:  # If the book info is not in the cache, check the database
+            book_info = get_book_by_title(title)
+            print(f"Book info from database: {book_info}")
+        if not book_info:  # If no info is found, fetch it from Google Books API
+            book_info = get_book_info_by_title(title)
+            print(f"Book info from Google Books API: {book_info}")
+        if book_info:
+            books_cache[title] = book_info  # Cache the book info
+            insert_book_to_db(
+                book_info["title"],
+                quote_plus(title),
+                book_info["isbn"],
+                book_info["canonical_volume_link"],
+                book_info["thumbnail"],
+                book_info["small_thumbnail"],
+            )  # Insert into database if new
 
-            # If no ISBN is found in cache or database, fetch from Google Books API
-        if not isbn:
-            isbn = get_isbn_by_title(title)
-            if isbn:
-                print(f"ISBN FROM GOOGLE BOOKS: {isbn}")
-                books_cache[title] = isbn  # Cache fetched ISBN
-                insert_book_to_db(title, quote_plus(title), isbn)  # Insert into database if new
-
-        entry.isbn = isbn if isbn else []  # Ensure the ISBN field is updated with the correct value
+        entry.isbn = book_info["isbn"] if book_info else []
+        entry.canonical_volume_link = book_info["canonical_volume_link"] if book_info else ""
+        entry.thumbnail = book_info["thumbnail"] if book_info else ""
+        entry.small_thumbnail = book_info["small_thumbnail"] if book_info else ""
         catalog_entries.append(entry)
 
     return c.render(view_mode=view_mode, catalog_entries=catalog_entries, loading=True)
@@ -52,19 +60,20 @@ def catalog(path=""):
 @auth.login_required
 def view_books():
     """Display books from the database in an HTML table."""
-    conn = sqlite3.connect('ebooks.db')
-    cursor = conn.cursor()
-    cursor.execute("SELECT filename, title, isbn FROM books")
-    books = cursor.fetchall()
-    conn.close()
+    try:
+        conn = sqlite3.connect('ebooks.db')
+        cursor = conn.cursor()
 
-    # Render the results as an HTML table
-    html = "<h1>books</h1><table border='1'><tr><th>Filename</th><th>Title</th><th>ISBN</th></tr>"
-    for book in books:
-        html += f"<tr><td>{book[0]}</td><td>{book[1]}</td><td>{book[2]}</td></tr>"
-    html += "</table>"
+        cursor.execute("SELECT filename, title, isbn, canonical_volume_link, thumbnail FROM books")
+        books = cursor.fetchall()
 
-    return html
+        conn.close()
+
+        return render_template("view_books.html", books=books)
+
+    except Exception as e:
+        print(f"Error fetching books: {e}")
+        return jsonify({"error": "Failed to retrieve books from the database"}), 500
 
 
 @app.route("/check_and_update_books", methods=["POST"])
@@ -73,14 +82,12 @@ def check_and_update_books():
     try:
         books_data = request.get_json()["books_data"]
 
-        # Example book titles to update or check
         books_to_check = [str(book) for book in books_data]
 
-        # Check for each title if it exists in the database
         for title in books_to_check:
             if title not in books_cache:
                 # Fetch the ISBN if it's not in the cache or database
-                isbns = get_isbn_by_title([title])
+                isbns = get_book_info_by_title([title])
                 if isbns:
                     books_data[title] = isbns
                 else:
@@ -111,7 +118,7 @@ def isbn_lookup():
             if title in books_cache and books_cache[title]:
                 result[title] = books_cache[title]
             else:
-                isbns = get_isbn_by_title([title])
+                isbns = get_book_info_by_title([title])
                 result[title] = isbns
                 books_cache[title] = isbns
 

@@ -13,9 +13,12 @@ def init_db():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS books (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT,
+        filename TEXT NOT NULL,
         title TEXT NOT NULL,
         isbn TEXT NOT NULL,
+        canonical_volume_link TEXT NOT NULL,
+        thumbnail TEXT NOT NULL,
+        small_thumbnail TEXT NOT NULL,
         UNIQUE(title, isbn)
     )
     ''')
@@ -24,7 +27,7 @@ def init_db():
     conn.close()
 
 
-def insert_book_to_db(title, filename, isbn):
+def insert_book_to_db(title, filename, isbn, canonical_volume_link, thumbnail, small_thumbnail):
     """Insert a book and its ISBN into the SQLite database if not already present."""
     if not isbn:
         print(f"Invalid ISBN for book {title}. Skipping insertion.")  # Debugging
@@ -35,13 +38,15 @@ def insert_book_to_db(title, filename, isbn):
 
     conn = sqlite3.connect('ebooks.db')
     cursor = conn.cursor()
+
     try:
-        print(f"Inserting book into the database: {filename}; {title}; {isbn}")
+        print(f"Inserting book into the database: {filename}; {title}; {isbn}; {canonical_volume_link}; {thumbnail}")
         cursor.execute('''
-            INSERT OR IGNORE INTO books (filename, title, isbn)
-            VALUES (?, ?, ?)
-        ''', (filename, title, isbn))  # Make sure filename is being inserted
+            INSERT OR REPLACE INTO books (filename, title, isbn, canonical_volume_link, thumbnail, small_thumbnail)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (filename, title, isbn, canonical_volume_link, thumbnail, small_thumbnail))
         conn.commit()
+        print(f"Book inserted successfully: {title}")
     except sqlite3.InterfaceError as e:
         print(f"Error inserting {title} with ISBN {isbn}: {e}")  # Debugging
     finally:
@@ -52,10 +57,31 @@ def get_books_from_db():
     """Retrieve all books from the database."""
     conn = sqlite3.connect('ebooks.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT filename, title, isbn FROM books")
+    cursor.execute("SELECT filename, title, isbn, canonical_volume_link, thumbnail, small_thumbnail FROM books")
     books = cursor.fetchall()
     conn.close()
     return books
+
+
+def get_book_by_title(title):
+    """Retrieve a book from the database by title."""
+    conn = sqlite3.connect('ebooks.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT filename, title, isbn, canonical_volume_link, thumbnail, small_thumbnail FROM books WHERE title = ?", (title,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        # Return a dictionary of book details
+        return {
+            "filename": result[0],
+            "title": result[1],
+            "isbn": result[2],
+            "canonical_volume_link": result[3],
+            "thumbnail": result[4],
+            "small_thumbnail": result[5]
+        }
+    return None
 
 
 def get_isbn_from_db(title):
