@@ -44,6 +44,9 @@ class Entry(object):
         self.id = kwargs["id"]
         self.filename = kwargs.get("filename", None)
         self.title = kwargs["title"]
+        self.thumbnail = kwargs.get("thumbnail", None)  # Default to None if missing
+        self.small_thumbnail = kwargs.get("small_thumbnail", None)  # Default to None if missing
+        self.canonical_volume_link = kwargs.get("canonical_volume_link", None)
         self.links = kwargs["links"]
         self.isbn = kwargs.get("isbn", [])
         self.is_folder = kwargs.get("is_folder", False)
@@ -55,3 +58,12 @@ class Entry(object):
     def set(self, key, value):
         self.validate(key, value)
         self._data[key] = value
+
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "isbn": self.isbn,
+            "small_thumbnail": self.small_thumbnail,
+            "canonical_volume_link": self.canonical_volume_link,
+            "links": [link.to_dict() for link in self.links]  # If links is an object, convert them as well
+        }
