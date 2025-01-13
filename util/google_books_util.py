@@ -3,7 +3,7 @@ from urllib.parse import quote_plus
 
 import requests
 
-from util.db_util import insert_book_to_db, get_isbn_from_db
+from util.db_util import insert_book_to_db, get_isbn_by_title
 
 
 def get_book_info_by_title(title: str) -> dict:
@@ -81,7 +81,7 @@ def get_book_info_by_title(title: str) -> dict:
                         "canonical_volume_link": canonical_volume_link,
                     }
 
-                    existing_isbn = get_isbn_from_db(title)
+                    existing_isbn = get_isbn_by_title(title)
 
                     if existing_isbn != isbn:
                         # Insert book into the database if it's not already present

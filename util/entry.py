@@ -22,6 +22,7 @@ class Entry(object):
         "formats",
         "links",
         "thumbnail",
+        "small_thumbnail",
         "isbn",
         "is_folder",
     )
