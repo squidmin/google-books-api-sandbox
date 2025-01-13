@@ -10,8 +10,7 @@
                 "rel": "http://opds-spec.org/acquisition",
                 "type": "application/pdf"
             }
-        ],
-        "description": "TEST DESCRIPTION"
+        ]
     },
     {
         "title": "TheAlgorithmDesignManual_2nded",

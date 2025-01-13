@@ -14,6 +14,7 @@ class Catalog(object):
             self,
             title,
             id=None,
+            description=None,
             author_name=None,
             author_uri=None,
             root_url=None,
@@ -21,6 +22,7 @@ class Catalog(object):
             entries=None,
     ):
         self.title = title
+        self.description = description
         self.id = id or uuid4()
         self.author_name = author_name
         self.author_uri = author_uri

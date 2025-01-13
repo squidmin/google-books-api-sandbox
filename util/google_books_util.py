@@ -91,7 +91,8 @@ def get_book_info_by_title(title: str) -> dict:
                             isbn,
                             canonical_volume_link,
                             thumbnail,
-                            small_thumbnail
+                            small_thumbnail,
+                            description
                         )
 
     return book_info

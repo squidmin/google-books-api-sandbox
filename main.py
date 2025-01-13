@@ -6,6 +6,7 @@ from gevent.pywsgi import WSGIServer
 from werkzeug.security import check_password_hash
 
 import config
+import json
 from urllib.parse import quote_plus
 from util import fromdir
 from util.db_util import init_db, insert_book_to_db, get_book_by_title
@@ -15,6 +16,28 @@ app = Flask(__name__, static_url_path="", static_folder="static")
 auth = HTTPBasicAuth()
 
 books_cache = {}
+
+
+# @app.route("/catalog")
+# @app.route("/catalog/<path:path>")
+# @auth.login_required
+# def catalog(path=""):
+#     view_mode = request.args.get("view", "list")  # default to 'list' view
+#     c = fromdir(request.root_url, request.url, config.CONTENT_BASE_DIR, path)
+#
+#     # Read the catalog entries from the sample JSON payload
+#     catalog_entries = []
+#     try:
+#         with open('./docs/sample_payloads/catalog_entries.json', 'r') as json_file:
+#             catalog_entries = json.load(json_file)
+#             print(f"Catalog entries loaded from file: {len(catalog_entries)} entries found.")
+#     except Exception as e:
+#         print(f"Error reading catalog entries from file: {e}")
+#
+#     # You can still include any processing logic if needed
+#     # For example, you might want to do additional transformations or checks on catalog_entries.
+#
+#     return c.render(view_mode=view_mode, catalog_entries=catalog_entries, loading=True)
 
 
 @app.route("/catalog")
@@ -45,13 +68,17 @@ def catalog(path=""):
                 book_info["canonical_volume_link"],
                 book_info["thumbnail"],
                 book_info["small_thumbnail"],
+                book_info["description"],
             )  # Insert into database if new
 
         entry.isbn = book_info["isbn"] if book_info else []
         entry.canonical_volume_link = book_info["canonical_volume_link"] if book_info else ""
         entry.thumbnail = book_info["thumbnail"] if book_info else ""
         entry.small_thumbnail = book_info["small_thumbnail"] if book_info else ""
-        catalog_entries.append(entry)
+        entry.description = book_info["description"] if book_info else ""
+
+        # Convert entry to dictionary before appending
+        catalog_entries.append(entry.to_dict())
 
     return c.render(view_mode=view_mode, catalog_entries=catalog_entries, loading=True)
 
@@ -64,7 +91,7 @@ def view_books():
         conn = sqlite3.connect('ebooks.db')
         cursor = conn.cursor()
 
-        cursor.execute("SELECT filename, title, isbn, canonical_volume_link, thumbnail FROM books")
+        cursor.execute("SELECT filename, title, isbn, canonical_volume_link, thumbnail, description FROM books")
         books = cursor.fetchall()
 
         conn.close()

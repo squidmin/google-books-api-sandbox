@@ -6,7 +6,6 @@ def init_db():
     conn = sqlite3.connect('ebooks.db')
     cursor = conn.cursor()
 
-    # Drop the table if it exists, so we can recreate it with the correct schema
     cursor.execute("DROP TABLE IF EXISTS books")  # Comment this line to keep the existing table between runs
 
     # Create the books table with the filename column
@@ -19,6 +18,7 @@ def init_db():
         canonical_volume_link TEXT NOT NULL,
         thumbnail TEXT NOT NULL,
         small_thumbnail TEXT NOT NULL,
+        description TEXT NOT NULL,
         UNIQUE(title, isbn)
     )
     ''')
@@ -27,7 +27,7 @@ def init_db():
     conn.close()
 
 
-def insert_book_to_db(title, filename, isbn, canonical_volume_link, thumbnail, small_thumbnail):
+def insert_book_to_db(title, filename, isbn, canonical_volume_link, thumbnail, small_thumbnail, description):
     """Insert a book and its ISBN into the SQLite database if not already present."""
     if not isbn:
         print(f"Invalid ISBN for book {title}. Skipping insertion.")  # Debugging
@@ -39,7 +39,7 @@ def insert_book_to_db(title, filename, isbn, canonical_volume_link, thumbnail, s
     cursor = conn.cursor()
 
     try:
-        print(f"Inserting book into the database: {filename}; {title}; {isbn}; {canonical_volume_link}; {thumbnail}")
+        print(f"Inserting book into the database: {filename}; {title}; {isbn}; {canonical_volume_link}; {thumbnail}; {description}")
         cursor.execute("""
         INSERT OR REPLACE INTO books (
                 filename,
@@ -47,15 +47,17 @@ def insert_book_to_db(title, filename, isbn, canonical_volume_link, thumbnail, s
                 isbn,
                 canonical_volume_link,
                 thumbnail,
-                small_thumbnail
+                small_thumbnail,
+                description
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (filename,
               title,
               isbn,
               canonical_volume_link,
               thumbnail,
-              small_thumbnail))
+              small_thumbnail,
+              description))
         conn.commit()
         print(f"Book inserted successfully: {title}")
     except sqlite3.InterfaceError as e:
@@ -75,7 +77,8 @@ def get_books_from_db():
         isbn,
         canonical_volume_link,
         thumbnail,
-        small_thumbnail
+        small_thumbnail,
+        description
     FROM books
     """)
     books = cursor.fetchall()
@@ -93,7 +96,8 @@ def get_book_by_title(title):
                isbn,
                canonical_volume_link,
                thumbnail,
-               small_thumbnail
+               small_thumbnail,
+               description
         FROM books
         WHERE title = ?
         """,
@@ -109,7 +113,8 @@ def get_book_by_title(title):
             "isbn": result[2],
             "canonical_volume_link": result[3],
             "thumbnail": result[4],
-            "small_thumbnail": result[5]
+            "small_thumbnail": result[5],
+            "description": result[6],
         }
     return None
 
@@ -121,5 +126,4 @@ def get_isbn_by_title(title):
     cursor.execute("SELECT isbn FROM books WHERE title = ?", (title,))
     result = cursor.fetchone()
     conn.close()
-    # Ensure it returns a valid ISBN or None
     return result[0] if result else None

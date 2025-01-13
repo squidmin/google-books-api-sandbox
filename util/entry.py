@@ -25,6 +25,8 @@ class Entry(object):
         "small_thumbnail",
         "isbn",
         "is_folder",
+        "canonical_volume_link",
+        "description",
     )
 
     required_keys = ("id", "title", "links")
@@ -49,6 +51,7 @@ class Entry(object):
         self.canonical_volume_link = kwargs.get("canonical_volume_link", None)
         self.links = kwargs["links"]
         self.isbn = kwargs.get("isbn", [])
+        self.description = kwargs.get("description", None)
         self.is_folder = kwargs.get("is_folder", False)
         self._data = kwargs
 
@@ -65,5 +68,6 @@ class Entry(object):
             "isbn": self.isbn,
             "small_thumbnail": self.small_thumbnail,
             "canonical_volume_link": self.canonical_volume_link,
-            "links": [link.to_dict() for link in self.links]  # If links is an object, convert them as well
+            "links": [link.to_dict() for link in self.links],
+            "description": self.description,
         }
