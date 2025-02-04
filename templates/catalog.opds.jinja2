@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:dc="http://purl.org/dc/terms/"
+      xmlns:ov="http://open.vocab.org/terms/"
+      xmlns:oz="http://openzim.org/terms/"
+      xmlns:opds="http://opds-spec.org/2010/catalog">
+
+  <div>
+    <id>urn:uuid:{{ catalog.id }}</id>
+    <title>{{ catalog.title }}</title>
+
+    {% if catalog.author_name or catalog.author_url %}
+      <author>
+        {% if catalog.author_name %}
+          <name>{{ catalog.author_name }}</name>
+        {% endif %}
+        {% if catalog.author_url %}
+          <uri>{{ catalog.author_url }}</uri>
+        {% endif %}
+      </author>
+    {% endif %}
+  </div>
+
+  <link rel="start" href="{{ catalog.root_url }}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <link rel="self" href="{{ catalog.url }}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+  <div class="view-toggle">
+    <a href="?view=list">List View</a> | <a href="?view=grid">Grid View</a>
+  </div>
+
+  {% if view_mode == 'list' %}
+    <div class="list">
+      {% for entry in catalog_entries %}
+        <div class="list-item">
+          <h3>{{ entry.title }}</h3>
+          {% if entry.is_folder %}
+            <p><i class="folder-icon">📁</i> </p>
+          {% else %}
+            <div>
+              {% if entry.thumbnail %}
+                <img src="{{ entry.thumbnail }}" alt="{{ entry.title }}">
+              {% endif %}
+              {% if entry.canonical_volume_link %}
+                <p><a href="{{ entry.canonical_volume_link }}" type="application/atom+xml;profile=opds-catalog;kind=acquisition">Read</a></p>
+              {% endif %}
+              {% if entry.isbn %}
+                <p>ISBN: {{ entry.isbn }}</p>
+              {% else %}
+                <p>No ISBN available</p>
+              {% endif %}
+              <button class="show-details" data-entry="{{ entry.title }}">Show Details</button>
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if view_mode == 'grid' %}
+    <div class="grid">
+      {% for entry in catalog_entries %}
+        <div class="grid-item">
+          <h3>{{ entry.title }}</h3>
+          {% if entry.is_folder %}
+            <p><i class="folder-icon">📁</i> This is a folder.</p>
+          {% else %}
+            {% if entry.thumbnail %}
+              <div class="thumbnail-container">
+                <img src="{{ entry.small_thumbnail }}" alt="{{ entry.title }}" class="thumbnail">
+              </div>
+            {% endif %}
+            {% if entry.canonical_volume_link %}
+              <p>
+                <a href="{{ entry.canonical_volume_link }}" type="application/atom+xml;profile=opds-catalog;kind=acquisition">Read</a>
+              </p>
+            {% endif %}
+            {% if entry.isbn %}
+              <p>ISBN: {{ entry.isbn }}</p>
+            {% else %}
+              <p>No ISBN available</p>
+            {% endif %}
+            <button class="show-details" data-entry="{{ entry.title }}">Show Details</button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Modal for showing more details about the book -->
+  <div id="book-details-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close-btn">&times;</span>
+      <h2>Book Details</h2>
+      <div id="modal-body" style="display: flex; flex-wrap: wrap; align-items: center;">
+        <!-- Book details (left side) -->
+        <div id="book-details-left" style="flex: 1; padding-right: 20px;">
+          <!-- Book details content will be injected here -->
+        </div>
+
+        <!-- Thumbnail (right side) -->
+        <div id="book-thumbnail" style="flex: 0 0 200px; display: flex; justify-content: center; align-items: center; height: 100%; padding: 20px;">
+          <!-- Thumbnail will be injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const modal = document.getElementById('book-details-modal');
+      const modalBody = document.getElementById('modal-body');
+      const closeBtn = document.querySelector('.close-btn');
+
+      // Show details button event
+      const showDetailsButtons = document.querySelectorAll('.show-details');
+      showDetailsButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const entryTitle = this.getAttribute('data-entry');
+          const catalogEntries = {{ catalog_entries | tojson }};
+          const entry = catalogEntries.find(e => e.title === entryTitle);
+
+          // Debugging to see what is being clicked
+          console.log("Clicked book:", entry);
+
+          if (entry) {
+            const bookDetailsLeft = document.getElementById('book-details-left');
+            const bookThumbnail = document.getElementById('book-thumbnail');
+
+            // Clear previous content
+            bookDetailsLeft.innerHTML = '';
+            bookThumbnail.innerHTML = '';
+
+            // Add book details to the left section
+            bookDetailsLeft.innerHTML = `
+              <p><strong>Title:</strong> ${entry.title}</p>
+              <p><strong>ISBN:</strong> ${entry.isbn || 'No ISBN available'}</p>
+              <p><strong>Canonical Volume Link:</strong> ${entry.canonical_volume_link}</p>
+              <p><strong>Authors:</strong> ${entry.authors ? entry.authors.join(', ') : 'No authors available'}</p>
+              <p><strong>Description:</strong> ${entry.description || 'No description available.'}</p>
+            `;
+
+            if (entry.small_thumbnail) {
+              bookThumbnail.innerHTML = `<img src="${entry.small_thumbnail}" alt="${entry.title}" style="max-width: 100%; height: auto;">`;
+            } else {
+              bookThumbnail.innerHTML = `<p>No thumbnail available</p>`;
+            }
+
+            modal.style.display = 'block';
+          }
+        });
+      });
+
+      // Close modal event
+      closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+      });
+
+      // Close modal if the user clicks outside the modal
+      window.onclick = function(event) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      };
+    });
+  </script>
+
+</feed>

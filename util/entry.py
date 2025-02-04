@@ -2,6 +2,7 @@ class Entry(object):
     valid_keys = (
         "id",
         "url",
+        "filename",
         "title",
         "content",
         "downloadsPerMonth",
@@ -20,8 +21,12 @@ class Entry(object):
         "authors",
         "formats",
         "links",
+        "thumbnail",
+        "small_thumbnail",
         "isbn",
         "is_folder",
+        "canonical_volume_link",
+        "description",
     )
 
     required_keys = ("id", "title", "links")
@@ -39,9 +44,14 @@ class Entry(object):
                 raise KeyError("required key %s not supplied for Entry!" % (req_key))
 
         self.id = kwargs["id"]
+        self.filename = kwargs.get("filename", None)
         self.title = kwargs["title"]
+        self.thumbnail = kwargs.get("thumbnail", None)  # Default to None if missing
+        self.small_thumbnail = kwargs.get("small_thumbnail", None)  # Default to None if missing
+        self.canonical_volume_link = kwargs.get("canonical_volume_link", None)
         self.links = kwargs["links"]
         self.isbn = kwargs.get("isbn", [])
+        self.description = kwargs.get("description", None)
         self.is_folder = kwargs.get("is_folder", False)
         self._data = kwargs
 
@@ -51,3 +61,13 @@ class Entry(object):
     def set(self, key, value):
         self.validate(key, value)
         self._data[key] = value
+
+    def to_dict(self):
+        return {
+            "title": self.title,
+            "isbn": self.isbn,
+            "small_thumbnail": self.small_thumbnail,
+            "canonical_volume_link": self.canonical_volume_link,
+            "links": [link.to_dict() for link in self.links],
+            "description": self.description,
+        }

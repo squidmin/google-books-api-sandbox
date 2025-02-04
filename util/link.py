@@ -25,3 +25,10 @@ class Link(object):
     def set(self, key, value):
         self.validate(key, value)
         self._data[key] = value
+
+    def to_dict(self):
+        return {
+            "href": self.href,
+            "rel": self.rel,
+            "type": self.type
+        }

@@ -14,12 +14,15 @@ class Catalog(object):
             self,
             title,
             id=None,
+            description=None,
             author_name=None,
             author_uri=None,
             root_url=None,
             url=None,
+            entries=None,
     ):
         self.title = title
+        self.description = description
         self.id = id or uuid4()
         self.author_name = author_name
         self.author_uri = author_uri
@@ -30,14 +33,19 @@ class Catalog(object):
     def add_entry(self, entry):
         self.entries.append(entry)
 
-    def render(self, view_mode=None, catalog_entries=None):
+    def render(self, view_mode=None, catalog_entries=None, loading=False):
         env = Environment(
             loader=FileSystemLoader(
-                searchpath=os.path.join(os.path.dirname(__file__), "templates")
+                searchpath=os.path.join(os.path.dirname(__file__), "../templates")
             ),
             autoescape=select_autoescape(["html", "xml"]),
         )
         env.globals['url_for'] = url_for
+
+        # if loading:
+        #     template = env.get_template("loading.opds.jinja2")
+        #     return template.render(loading=loading)
+        # else:
         template = env.get_template("catalog.opds.jinja2")
         return template.render(catalog=self, view_mode=view_mode, catalog_entries=catalog_entries)
 

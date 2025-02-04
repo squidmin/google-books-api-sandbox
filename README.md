@@ -6,22 +6,22 @@
 
 ```bash
 python3 main.py \
-  --google-books-api-key=${GOOGLE_BOOKS_API_KEY} \
-  --library=/path/to/content
+  --GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY} \
+  --library=${CONTENT_BASE_DIR}
 ```
 
 For example:
 
 ```bash
 python3 main.py \
-  --google-books-api-key=AIzaSyD1J1J1J1J1J1J1J1J1J1J1J1J1J1J1 \
-  --library=/Users/admin/Documents/07_books
+  --GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY} \
+  --CONTENT_BASE_DIR=${CONTENT_BASE_DIR}
 ```
 
 ### Container
 
 ```bash
-docker build . -t teenyopds
+docker build . -t readops
 ```
 
 ```bash
